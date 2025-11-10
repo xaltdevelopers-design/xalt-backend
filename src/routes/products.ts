@@ -3,11 +3,16 @@
 declare const Deno: any;
 import { Router, Context } from "../deps.ts";
 import { addProduct, listProducts, getProduct, updateProduct, deleteProduct } from "../controllers/products.ts";
+import { authMiddleware, requireAuth } from "../middleware/auth.ts";
 
 export const productsRouter = new Router({ prefix: "/api/products" });
 
+// Attach auth middleware for all product routes
+productsRouter.use(authMiddleware);
+
 // List all products
 productsRouter.get("/", async (ctx: Context) => {
+  requireAuth(ctx);
   try {
     const products = await listProducts();
     const baseUrl = `${ctx.request.url.protocol}//${ctx.request.url.host}`;
@@ -45,6 +50,7 @@ productsRouter.get("/", async (ctx: Context) => {
 // Add product
 // Add product (supports multipart/form-data for image upload)
 productsRouter.post("/", async (ctx: Context) => {
+  requireAuth(ctx);
   const contentType = ctx.request.headers.get("content-type") || "";
   let body: any = {};
   let productImages: string[] = [];
@@ -152,6 +158,7 @@ productsRouter.post("/", async (ctx: Context) => {
 
 // Get product by id
 productsRouter.get("/:id", async (ctx: Context) => {
+  requireAuth(ctx);
   const id = ctx.params.id!;
   try {
     const product = await getProduct(id);
@@ -196,6 +203,7 @@ productsRouter.get("/:id", async (ctx: Context) => {
 
 // Update product
 productsRouter.put("/:id", async (ctx: Context) => {
+  requireAuth(ctx);
   // Accept both Mongo _id and string id
   let id = ctx.params.id;
   let body: any = {};
@@ -295,6 +303,7 @@ productsRouter.put("/:id", async (ctx: Context) => {
 
 // Delete product
 productsRouter.delete(":id", async (ctx: Context) => {
+  requireAuth(ctx);
   const id = ctx.params.id!;
   try {
     await deleteProduct(id);
