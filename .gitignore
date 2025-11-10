@@ -1,0 +1,18 @@
+# Environment variables
+.env
+
+# Deno
+.deno/
+
+# Uploads (images)
+uploads/
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/

@@ -1,0 +1,12 @@
+{
+  "imports": {
+    "@oak/": "https://deno.land/x/oak@v12.6.1/",
+    "oak": "https://deno.land/x/oak@v12.6.1/mod.ts",
+    "superoak": "https://deno.land/x/superoak@4.7.0/mod.ts",
+    "mongo": "https://deno.land/x/mongo@v0.32.0/mod.ts",
+    "bson": "https://deno.land/x/mongo@v0.32.0/deps.ts",
+    "zod": "https://deno.land/x/zod@v3.23.8/mod.ts",
+    "dotenv": "https://deno.land/std@0.224.0/dotenv/mod.ts",
+    "colors": "https://deno.land/std@0.224.0/fmt/colors.ts"
+  }
+}
