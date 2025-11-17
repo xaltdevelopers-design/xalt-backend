@@ -19,19 +19,20 @@ productsRouter.get("/", async (ctx: Context) => {
     const products = await listProducts();
   const baseUrl = Deno.env.get("BASE_URL") || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
     const productsWithId = products.map((p: any) => {
+      if (!p || typeof p !== "object") return null;
       let productImage = null;
       if (Array.isArray(p.productImages) && p.productImages.length > 0) {
         productImage = baseUrl + p.productImages[0];
       } else if (typeof p.productImages === "string") {
         productImage = baseUrl + p.productImages;
       }
-      const { productImages, ...rest } = p;
+      const { productImages = undefined, ...rest } = p || {};
       return {
         ...rest,
         productImage,
-        id: p._id?.$oid || p._id || null
+        id: p?._id?.$oid || p?._id || null
       };
-    });
+    }).filter(Boolean);
     ctx.response.body = {
       success: true,
       message: "Products fetched successfully",
@@ -106,25 +107,26 @@ productsRouter.post("/", async (ctx: Context) => {
     console.log("Parsed form-data body:", body);
     const product = await addProduct(body);
     ctx.response.status = 201;
-      ctx.response.body = {
-        success: true,
-        message: "Product added successfully",
-        error: null,
-        data: (() => {
-          let productImage = null;
-          if (Array.isArray(product.productImages) && product.productImages.length > 0) {
-            productImage = product.productImages[0];
-          } else if (typeof product.productImages === "string") {
-            productImage = product.productImages;
-          }
-          const { productImages, ...rest } = product;
-          return {
-            ...rest,
-            productImage,
-            id: product?._id?.$oid || product?._id || null
-          };
-        })()
-      };
+    ctx.response.body = {
+      success: true,
+      message: "Product added successfully",
+      error: null,
+      data: (() => {
+        if (!product || typeof product !== "object") return null;
+        let productImage = null;
+        if (Array.isArray(product.productImages) && product.productImages.length > 0) {
+          productImage = product.productImages[0];
+        } else if (typeof product.productImages === "string") {
+          productImage = product.productImages;
+        }
+        const { productImages = undefined, ...rest } = product || {};
+        return {
+          ...rest,
+          productImage,
+          id: product?._id?.$oid || product?._id || null
+        };
+      })()
+    };
   } catch (e: any) {
     ctx.response.status = 400;
     let message = e instanceof Error ? e.message : "Bad Request";
@@ -164,24 +166,25 @@ productsRouter.get("/:id", async (ctx: Context) => {
   const id = ctx.params.id!;
   try {
     const product = await getProduct(id);
-    if (!product) {
+    if (!product || typeof product !== "object") {
       ctx.response.status = 404;
-        ctx.response.body = {
-          success: false,
-          message: "Product not found",
-          error: "Not Found",
-          data: null
-        };
+      ctx.response.body = {
+        success: false,
+        message: "Product not found",
+        error: "Not Found",
+        data: null
+      };
       return;
     }
-  const baseUrl = Deno.env.get("BASE_URL") || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
+    const baseUrl = Deno.env.get("BASE_URL") || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
     let productImage = null;
-    if (Array.isArray(product.productImages) && product.productImages.length > 0) {
+    if (product && Array.isArray(product.productImages) && product.productImages.length > 0) {
       productImage = baseUrl + product.productImages[0];
-    } else if (typeof product.productImages === "string") {
+    } else if (product && typeof product.productImages === "string") {
       productImage = baseUrl + product.productImages;
     }
-    const { productImages, ...rest } = product;
+    // Defensive destructuring
+    const { productImages = undefined, ...rest } = product || {};
     ctx.response.body = {
       success: true,
       message: "Product fetched successfully",
@@ -194,12 +197,12 @@ productsRouter.get("/:id", async (ctx: Context) => {
     };
   } catch (e: unknown) {
     ctx.response.status = 400;
-      ctx.response.body = {
-        success: false,
-        message: e instanceof Error ? e.message : "Bad Request",
-        error: e instanceof Error ? e.message : e,
-        data: null
-      };
+    ctx.response.body = {
+      success: false,
+      message: e instanceof Error ? e.message : "Bad Request",
+      error: e instanceof Error ? e.message : e,
+      data: null
+    };
   }
 });
 
