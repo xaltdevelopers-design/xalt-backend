@@ -22,11 +22,14 @@ export function createApp() {
       console.log(yellow(`${ctx.request.method} ${ctx.request.url.pathname} - ${ms}ms`));
     } catch (err) {
       console.error(red("Unhandled error:"), err);
-      ctx.response.status = 500;
+      // Only set 500 if not already set (e.g. 401/403)
+      if (!ctx.response.status || ctx.response.status === 200) {
+        ctx.response.status = 500;
+      }
       ctx.response.body = {
         success: false,
         message: typeof err === "object" && err !== null && "message" in err ? (err as any).message : "Internal Server Error",
-        error: "Internal Server Error"
+        error: ctx.response.status === 500 ? "Internal Server Error" : err instanceof Error ? err.message : err
       };
     }
   });
@@ -56,10 +59,11 @@ export function createApp() {
     return next();
   });
 
-  app.use(api.routes());
-  app.use(api.allowedMethods());
   // Attach auth middleware globally so ctx.state.currentUser is set when token is present
   app.use(authMiddleware);
+
+  app.use(api.routes());
+  app.use(api.allowedMethods());
 
   return app;
 }

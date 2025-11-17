@@ -7,6 +7,7 @@
     "bson": "https://deno.land/x/mongo@v0.32.0/deps.ts",
     "zod": "https://deno.land/x/zod@v3.23.8/mod.ts",
     "dotenv": "https://deno.land/std@0.224.0/dotenv/mod.ts",
-    "colors": "https://deno.land/std@0.224.0/fmt/colors.ts"
+    "colors": "https://deno.land/std@0.224.0/fmt/colors.ts",
+    "mongodb": "npm:mongodb@6.8.0"
   }
 }

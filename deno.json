@@ -11,6 +11,7 @@
   "compilerOptions": {
     "lib": ["deno.ns", "dom"]
   },
+  "nodeModulesDir": "auto",
   "fmt": {
     "useTabs": false,
     "lineWidth": 100,

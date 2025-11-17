@@ -155,9 +155,19 @@ export async function findByEmail(email: string) {
 
 export async function findByIdRaw(id: string) {
   const col = await collection();
-  // MongoDB uses ObjectId, not { $oid: string } for queries
-  const { ObjectId } = await import("../deps.ts");
-  return await col.findOne({ _id: new ObjectId(id) } as any);
+  const db = await import("../db/mongo.ts").then(m => m.getDb());
+  
+  // Check if we're using Node driver or Deno driver
+  // Node driver collections have different ObjectId handling
+  try {
+    // Try Node driver's ObjectId from mongodb package
+    const { ObjectId: NodeObjectId } = await import("mongodb");
+    return await col.findOne({ _id: new NodeObjectId(id) } as any);
+  } catch (_e) {
+    // Fallback to Deno driver's ObjectId
+    const { ObjectId } = await import("../deps.ts");
+    return await col.findOne({ _id: new ObjectId(id) } as any);
+  }
 }
 
 export async function authenticate(email: string, password: string) {
