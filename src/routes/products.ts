@@ -4,6 +4,8 @@ declare const Deno: any;
 import { Router, Context } from "../deps.ts";
 import { addProduct, listProducts, getProduct, updateProduct, deleteProduct } from "../controllers/products.ts";
 import { authMiddleware, requireAuth } from "../middleware/auth.ts";
+// @ts-ignore: Deno is available in runtime
+declare const Deno: any;
 
 export const productsRouter = new Router({ prefix: "/api/products" });
 
@@ -15,7 +17,7 @@ productsRouter.get("/", async (ctx: Context) => {
   requireAuth(ctx);
   try {
     const products = await listProducts();
-    const baseUrl = `${ctx.request.url.protocol}//${ctx.request.url.host}`;
+  const baseUrl = Deno.env.get("BASE_URL") || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
     const productsWithId = products.map((p: any) => {
       let productImage = null;
       if (Array.isArray(p.productImages) && p.productImages.length > 0) {
@@ -172,7 +174,7 @@ productsRouter.get("/:id", async (ctx: Context) => {
         };
       return;
     }
-    const baseUrl = `${ctx.request.url.protocol}//${ctx.request.url.host}`;
+  const baseUrl = Deno.env.get("BASE_URL") || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
     let productImage = null;
     if (Array.isArray(product.productImages) && product.productImages.length > 0) {
       productImage = baseUrl + product.productImages[0];
