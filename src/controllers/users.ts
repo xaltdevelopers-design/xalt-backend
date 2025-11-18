@@ -24,7 +24,7 @@ async function generateUserId(userType: "superAdmin" | "user"): Promise<string> 
 const userInput = z.object({
   email: z.string().email(),
   name: z.string().min(1),
-  password: z.string().min(6),
+  password: z.string().min(6).optional(),
   roles: z.array(z.string()).optional(),
   userType: z.enum(["superAdmin", "user"]).optional(),
   // User-specific fields (optional, for regular users)
@@ -46,14 +46,19 @@ export async function createUser(data: unknown) {
   const col = await collection();
   const existing = await col.findOne({ email: parsed.email });
   if (existing) throw new Error("Email already exists");
-  const passwordHash = await bcrypt.hash(parsed.password);
-  
   const userType = parsed.userType ?? "user";
   const userId = await generateUserId(userType);
   const now = new Date();
   // Assign roles based on userType
   let roles: string[] = [userType];
   if (parsed.roles) roles = parsed.roles;
+  let passwordHash = "";
+  if (userType === "superAdmin") {
+    if (!parsed.password) throw new Error("Password is required for superAdmin");
+    passwordHash = await bcrypt.hash(parsed.password);
+  } else if (parsed.password) {
+    passwordHash = await bcrypt.hash(parsed.password);
+  }
   const doc: UserSchema = {
     id: userId,
     email: parsed.email,
