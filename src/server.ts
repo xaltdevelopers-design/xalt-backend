@@ -10,8 +10,11 @@ import { authMiddleware } from "./middleware/auth.ts";
 
 export function createApp() {
   const app = new Application();
-  // Enable CORS for all routes
-  app.use(oakCors());
+  // Enable CORS for your production domain
+  app.use(oakCors({
+    origin: ["https://xaltfitness.club"],
+    credentials: true,
+  }));
 
   // Basic logger
   app.use(async (ctx: Context, next: () => Promise<unknown>) => {
