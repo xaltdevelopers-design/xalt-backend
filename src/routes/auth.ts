@@ -16,7 +16,7 @@ authRouter.post("/login", async (ctx: Context) => {
   }
   const user = await authenticate(parsed.data.email, parsed.data.password);
   if (!user) {
-    ctx.response.status = 401;
+    ctx.response.status = 400;
     ctx.response.body = { error: "Invalid email or password" };
     return;
   }
