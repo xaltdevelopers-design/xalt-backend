@@ -9,6 +9,7 @@ import { productsRouter } from "./products.ts";
 import { bootstrapRouter } from "./bootstrap.ts";
 import { forgotPasswordRouter } from "./forgotPassword.ts";
 import { banksRouter } from "./banks.ts";
+import { rolesRouter } from "./roles.ts";
 
 export const api = new Router();
 api.use(uploadRouter.routes(), uploadRouter.allowedMethods());
@@ -20,3 +21,4 @@ api.use(productsRouter.routes(), productsRouter.allowedMethods());
 api.use(bootstrapRouter.routes(), bootstrapRouter.allowedMethods());
 api.use(forgotPasswordRouter.routes(), forgotPasswordRouter.allowedMethods());
 api.use(banksRouter.routes(), banksRouter.allowedMethods());
+api.use(rolesRouter.routes(), rolesRouter.allowedMethods());

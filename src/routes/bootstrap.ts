@@ -1,3 +1,4 @@
+
 import { Router, z, Context } from "../deps.ts";
 import { createUser, listUsers } from "../controllers/users.ts";
 
@@ -33,4 +34,12 @@ bootstrapRouter.post("/admin", async (ctx: Context) => {
     ctx.response.status = 400;
     ctx.response.body = { error: msg };
   }
+});
+
+// GET /api/bootstrap/base-url - returns the BASE_URL for browser check
+bootstrapRouter.get("/base-url", (ctx: Context) => {
+  // Try to get BASE_URL from env, fallback to request origin
+  const baseUrl = (typeof Deno !== "undefined" && Deno.env && Deno.env.get && Deno.env.get("BASE_URL"))
+    || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
+  ctx.response.body = { baseUrl };
 });

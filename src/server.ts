@@ -10,10 +10,12 @@ import { authMiddleware } from "./middleware/auth.ts";
 
 export function createApp() {
   const app = new Application();
-  // Enable CORS for your production domain
+  // Enable CORS for all origins (development)
   app.use(oakCors({
-    origin: ["https://xaltfitness.club"],
+    origin: "*",
     credentials: true,
+    allowedHeaders: ["Authorization", "Content-Type", "Accept"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   }));
 
   // Basic logger
@@ -74,5 +76,6 @@ export function createApp() {
 export async function startServer(port: number) {
   const app = createApp();
   console.log(green(`Server starting on http://localhost:${port}`));
-  await app.listen({ hostname: "0.0.0.0",port });
+  // await Deno.server({ hostname: "0.0.0.0", port:8000 });
+  await app.listen({ hostname: "0.0.0.0", port:8000 });
 }
