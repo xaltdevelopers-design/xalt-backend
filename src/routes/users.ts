@@ -1,6 +1,6 @@
 import { Router, Context } from "../deps.ts";
 import { authMiddleware, requireAuth, requireRole } from "../middleware/auth.ts";
-import { createUser, listUsers, getUser, updateUser, deleteUser } from "../controllers/users.ts";
+import { createUser, listUsers, getUser, updateUser, deleteUser, listClients } from "../controllers/users.ts";
 
 export const usersRouter = new Router({ prefix: "/api/users" });
 
@@ -18,6 +18,13 @@ usersRouter.get("/", async (ctx: Context) => {
     message: "Users fetched successfully",
     data: users
   };
+});
+
+// List clients (all authenticated users can see client list)
+usersRouter.get("/clients", async (ctx: Context) => {
+  requireAuth(ctx);
+  const clients = await listClients();
+  ctx.response.body = { success: true, message: "Clients fetched successfully", data: clients };
 });
 
 // Create user (admin only)

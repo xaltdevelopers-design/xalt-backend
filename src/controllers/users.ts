@@ -105,6 +105,18 @@ export async function listUsers() {
   });
 }
 
+export async function listClients() {
+  const col = await collection();
+  const users = await col.find({ userType: "user" }, { projection: { passwordHash: 0 } }).toArray();
+  return users.map((user: any) => {
+    const { _id, ...rest } = user;
+    return {
+      _id: { $oid: _id.toString() },
+      ...rest
+    };
+  });
+}
+
 export async function getUser(id: string) {
   const col = await collection();
   const { ObjectId } = await import("../deps.ts");
