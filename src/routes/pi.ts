@@ -1,10 +1,10 @@
-// @ts-ignore: Deno namespace is available in Deno runtime
-// deno-lint-ignore no-explicit-any
-declare const Deno: any;
+
 import { Router, Context } from "../deps.ts";
 import { createPI, listPI, getPI, updatePI, deletePI } from "../controllers/pi.ts";
 import { requireAuth } from "../middleware/auth.ts";
-
+// @ts-ignore: Deno namespace is available in Deno runtime
+// deno-lint-ignore no-explicit-any
+declare const Deno: any;
 export const piRouter = new Router({ prefix: "/api/pi" });
 
 function getBaseUrl(ctx: Context) {
@@ -76,16 +76,47 @@ piRouter.post("/", async (ctx: Context) => {
         }
       }
     }
-    // If body.items exists, map filePaths to items without image
-    if (Array.isArray(body.items) && filePaths.length) {
-      for (let i = 0; i < Math.min(body.items.length, filePaths.length); i++) {
-        if (!body.items[i].image) body.items[i].image = filePaths[i];
+    // If body.items exists, map filePaths to items (ensure image field as URL)
+    const baseUrl = getBaseUrl(ctx);
+    if (Array.isArray(body.items)) {
+      for (let i = 0; i < body.items.length; i++) {
+        body.items[i].image = filePaths[i] ? baseUrl + filePaths[i] : "";
       }
     }
   } else {
     body = ctx.request.hasBody ? await ctx.request.body({ type: "json" }).value : {};
   }
 
+  // Type conversion for form-data fields
+  if (body) {
+    if (body.clientId !== undefined) {
+      const parsedId = Number(body.clientId);
+      body.clientId = isNaN(parsedId) ? String(body.clientId) : parsedId;
+    }
+    if (body.subtotal !== undefined) body.subtotal = Number(body.subtotal);
+    if (body.discount !== undefined) body.discount = Number(body.discount);
+    if (body.totalAmount !== undefined) body.totalAmount = Number(body.totalAmount);
+    if (body.taxPercent !== undefined) body.taxPercent = Number(body.taxPercent);
+    if (body.taxAmount !== undefined) body.taxAmount = Number(body.taxAmount);
+    if (body.grandTotal !== undefined) body.grandTotal = Number(body.grandTotal);
+    // Parse items if it's a string (from form-data)
+    if (typeof body.items === "string") {
+      try {
+        body.items = JSON.parse(body.items);
+      } catch {
+        body.items = [];
+      }
+    }
+    if (!Array.isArray(body.items)) {
+      body.items = [];
+    }
+    // If items array is missing or empty, return error
+    if (!body.items || body.items.length === 0) {
+      ctx.response.status = 400;
+      ctx.response.body = { success: false, message: "Items array required and must have at least one item." };
+      return;
+    }
+  }
   try {
     const created = await createPI(body);
     const baseUrl = getBaseUrl(ctx);

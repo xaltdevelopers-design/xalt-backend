@@ -27,7 +27,12 @@ companyRouter.get("/", async (ctx: Context) => {
     ctx.response.body = { success: false, message: "Not found", data: null };
     return;
   }
-  ctx.response.body = { success: true, data: doc };
+  // If doc is array, return as array, else as object
+  if (Array.isArray(doc)) {
+    ctx.response.body = { success: true, data: doc };
+  } else {
+    ctx.response.body = { success: true, data: [doc] };
+  }
 });
 
 // Update company (superAdmin only)

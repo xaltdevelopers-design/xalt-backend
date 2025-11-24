@@ -11,14 +11,44 @@ async function collection(): Promise<Collection<PIType>> {
 export async function createPI(data: unknown) {
   const now = new Date();
   const base = (typeof data === "object" && data !== null ? { ...(data as any) } : {}) as any;
-  // try to allocate a serial from company piPrefix
-  const company = await getCompany();
-  if (company && company.piPrefix) {
-    const next = await incrementPiCounter();
-    if (typeof next === "number") {
-      const num = String(next).padStart(4, "0");
-      base.piSerial = `${company.piPrefix}${num}`;
+  // Ensure every item has image field
+  if (Array.isArray(base.items)) {
+    for (let i = 0; i < base.items.length; i++) {
+      if (typeof base.items[i].image === "undefined") {
+        base.items[i].image = "";
+      }
     }
+  }
+  // try to allocate a serial from company piPrefix
+  let company = null;
+  if (base.companyId) {
+    const colCompany = await (await getDb()).collection("company");
+    company = await colCompany.findOne({ _id: base.companyId });
+  } else {
+    company = await getCompany();
+    if (Array.isArray(company)) company = company[0];
+  }
+  if (company && company.piPrefix) {
+    // Increment only for this company
+    const { ObjectId } = await import("../deps.ts");
+    const colCompany = await (await getDb()).collection("company");
+    let filter: any;
+    try {
+      if (typeof company._id === "object" && "$oid" in company._id) {
+        filter = { _id: new ObjectId(String(company._id.$oid)) };
+      } else if (typeof company._id === "string") {
+        filter = { _id: new ObjectId(company._id) };
+      } else {
+        filter = { _id: company._id };
+      }
+    } catch (_) {
+      filter = { _id: company._id };
+    }
+    await colCompany.updateOne(filter as any, { $inc: { piCounter: 1 } });
+    const updated = await colCompany.findOne(filter as any);
+    const next = updated?.piCounter ?? 1;
+    const num = String(next).padStart(4, "0");
+    base.piSerial = `${company.piPrefix}${num}`;
   }
   const withDates = { ...base, createdAt: now, updatedAt: now } as unknown;
   const parsed = PISchema.parse(withDates);

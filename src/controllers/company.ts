@@ -10,34 +10,46 @@ async function collection(): Promise<Collection<CompanyType>> {
 export async function createCompany(data: unknown) {
   const now = new Date();
   const base = (typeof data === "object" && data !== null ? (data as any) : {});
-  // piPrefix + serial number (always start with 0001)
-  let piPrefixWithSerial = base.piPrefix || "";
-  if (piPrefixWithSerial) {
-    piPrefixWithSerial = `${piPrefixWithSerial}0001`;
+  const col = await collection();
+  // Increment piPrefix and invoicePrefix serials independently
+  let initialPiCounter = 1;
+  let initialInvoiceCounter = 1;
+  let piPrefix, invoicePrefix;
+  if (base.piPrefix) {
+    const piCount = await col.countDocuments({ piPrefix: { $regex: `^${base.piPrefix}` } });
+    initialPiCounter = piCount + 1;
+    piPrefix = `${base.piPrefix}${String(initialPiCounter).padStart(4, "0")}`;
+  } else {
+    piPrefix = undefined;
   }
-  let invoicePrefixWithSerial = base.invoicePrefix || "";
-  if (invoicePrefixWithSerial) {
-    invoicePrefixWithSerial = `${invoicePrefixWithSerial}0001`;
+  if (base.invoicePrefix) {
+    const invoiceCount = await col.countDocuments({ invoicePrefix: { $regex: `^${base.invoicePrefix}` } });
+    initialInvoiceCounter = invoiceCount + 1;
+    invoicePrefix = `${base.invoicePrefix}${String(initialInvoiceCounter).padStart(4, "0")}`;
+  } else {
+    invoicePrefix = undefined;
   }
-  // piCounter starts at 1
-  const initialPiCounter = 1;
-  const withDates = { ...base, piPrefix: piPrefixWithSerial, invoicePrefix: invoicePrefixWithSerial, createdAt: now, updatedAt: now, piCounter: initialPiCounter } as any;
+  const withDates = {
+    ...base,
+    piPrefix,
+    invoicePrefix,
+    piCounter: initialPiCounter,
+    invoiceCounter: initialInvoiceCounter,
+    createdAt: now,
+    updatedAt: now
+  } as any;
   try {
     const parsed = CompanySchema.parse(withDates);
-    const col = await collection();
     // prevent multiple entries with same companyName
     const existing = await col.findOne({ companyName: parsed.companyName });
     if (existing) {
       throw { status: 400, message: `Company with name '${parsed.companyName}' already exists`, error: null };
     }
     const id = await col.insertOne(parsed as any);
-    const created = await col.findOne({ _id: id } as any);
-    // Add nextPiSerial to response (not persisted)
-    let nextPiSerial: string | undefined = undefined;
-    if (created && created.piPrefix) {
-      const num = String((created.piCounter ?? 0) + 1).padStart(4, "0");
-      nextPiSerial = `${created.piPrefix}${num}`;
-      (created as any).nextPiSerial = nextPiSerial;
+    let created = await col.findOne({ _id: id } as any);
+    // Fallback if created is null
+    if (!created) {
+      created = { ...parsed };
     }
     return created;
   } catch (e) {
@@ -55,7 +67,6 @@ export async function incrementPiCounter() {
   if (!company) return null;
   const { ObjectId } = await import("../deps.ts");
   const rawId = (company as any)._id;
-  // build a filter that works whether _id is an ObjectId, or an object like { $oid: '...' }, or a string
   let filter: any;
   try {
     if (rawId && typeof rawId === "object" && "$oid" in rawId) {
@@ -66,34 +77,61 @@ export async function incrementPiCounter() {
       filter = { _id: rawId };
     }
   } catch (_) {
-    // fallback to using rawId directly
     filter = { _id: rawId };
   }
   try {
-    // increment counter
     await col.updateOne(filter as any, { $inc: { piCounter: 1 } });
     const updated = await col.findOne(filter as any);
     if (!updated) return null;
-    // We intentionally do NOT persist the next serial on the company document.
-    // Return the updated counter so callers can compute the serial when needed.
     return updated?.piCounter ?? null;
   } catch (err) {
     console.error("incrementPiCounter error:", err);
+    return null;
+  }
+
+}
+
+export async function incrementInvoiceCounter() {
+  const col = await collection();
+  const company = await getCompany();
+  if (!company) return null;
+  const { ObjectId } = await import("../deps.ts");
+  const rawId = (company as any)._id;
+  let filter: any;
+  try {
+    if (rawId && typeof rawId === "object" && "$oid" in rawId) {
+      filter = { _id: new ObjectId(String(rawId.$oid)) };
+    } else if (typeof rawId === "string") {
+      filter = { _id: new ObjectId(rawId) };
+    } else {
+      filter = { _id: rawId };
+    }
+  } catch (_) {
+    filter = { _id: rawId };
+  }
+  try {
+    await col.updateOne(filter as any, { $inc: { invoiceCounter: 1 } });
+    const updated = await col.findOne(filter as any);
+    if (!updated) return null;
+    return updated?.invoiceCounter ?? null;
+  } catch (err) {
+    console.error("incrementInvoiceCounter error:", err);
     return null;
   }
 }
 
 export async function getCompany() {
   const col = await collection();
-  // return first company document
-  const doc = await col.find({}).sort({ createdAt: -1 }).limit(1).toArray();
-  const c = doc[0] || null;
-  if (c && c.piPrefix) {
-    const next = (c.piCounter ?? 0) + 1;
-    const num = String(next).padStart(4, "0");
-    (c as any).nextPiSerial = `${c.piPrefix}${num}`;
+  // return all company documents as array
+  const docs = await col.find({}).sort({ createdAt: -1 }).toArray();
+  for (const c of docs) {
+    if (c && c.piPrefix) {
+      const next = (c.piCounter ?? 0) + 1;
+      const num = String(next).padStart(4, "0");
+      (c as any).nextPiSerial = `${c.piPrefix}${num}`;
+    }
   }
-  return c;
+  return docs;
 }
 
 export async function updateCompany(id: string, data: unknown) {

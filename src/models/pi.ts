@@ -11,7 +11,8 @@ export const PIItemSchema = z.object({
 });
 
 export const PISchema = z.object({
-  clientId: z.number().optional(),
+  clientId: z.union([z.string(), z.number()]).optional(),
+  companyId: z.string().optional(),
   customerId: z.string().optional(),
   preparedBy: z.string().optional(),
   items: z.array(PIItemSchema).min(1),

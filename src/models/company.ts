@@ -8,7 +8,9 @@ export const CompanySchema = z.object({
   mobileNo: z.string().optional(),
   piPrefix: z.string().optional(),
   invoicePrefix: z.string().optional(),
+  CIN: z.string().optional(),
   piCounter: z.number().optional(),
+  invoiceCounter: z.number().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
