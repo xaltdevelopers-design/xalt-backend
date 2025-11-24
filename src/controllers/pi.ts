@@ -21,16 +21,23 @@ export async function createPI(data: unknown) {
   }
   // try to allocate a serial from company piPrefix
   let company = null;
+  const { ObjectId } = await import("../deps.ts");
   if (base.companyId) {
     const colCompany = await (await getDb()).collection("company");
-    company = await colCompany.findOne({ _id: base.companyId });
+    // Convert companyId string to ObjectId for MongoDB query
+    let companyFilter: any;
+    try {
+      companyFilter = { _id: new ObjectId(base.companyId) };
+    } catch {
+      companyFilter = { _id: base.companyId };
+    }
+    company = await colCompany.findOne(companyFilter);
   } else {
     company = await getCompany();
     if (Array.isArray(company)) company = company[0];
   }
   if (company && company.piPrefix) {
     // Increment only for this company
-    const { ObjectId } = await import("../deps.ts");
     const colCompany = await (await getDb()).collection("company");
     let filter: any;
     try {
@@ -48,7 +55,9 @@ export async function createPI(data: unknown) {
     const updated = await colCompany.findOne(filter as any);
     const next = updated?.piCounter ?? 1;
     const num = String(next).padStart(4, "0");
-    base.piSerial = `${company.piPrefix}${num}`;
+    // Ensure piPrefix ends with "/" before adding serial number
+    const prefix = company.piPrefix.endsWith("/") ? company.piPrefix : `${company.piPrefix}/`;
+    base.piSerial = `${prefix}${num}`;
   }
   const withDates = { ...base, createdAt: now, updatedAt: now } as unknown;
   const parsed = PISchema.parse(withDates);

@@ -11,28 +11,11 @@ export async function createCompany(data: unknown) {
   const now = new Date();
   const base = (typeof data === "object" && data !== null ? (data as any) : {});
   const col = await collection();
-  // Increment piPrefix and invoicePrefix serials independently
-  let initialPiCounter = 1;
-  let initialInvoiceCounter = 1;
-  let piPrefix, invoicePrefix;
-  if (base.piPrefix) {
-    const piCount = await col.countDocuments({ piPrefix: { $regex: `^${base.piPrefix}` } });
-    initialPiCounter = piCount + 1;
-    piPrefix = `${base.piPrefix}${String(initialPiCounter).padStart(4, "0")}`;
-  } else {
-    piPrefix = undefined;
-  }
-  if (base.invoicePrefix) {
-    const invoiceCount = await col.countDocuments({ invoicePrefix: { $regex: `^${base.invoicePrefix}` } });
-    initialInvoiceCounter = invoiceCount + 1;
-    invoicePrefix = `${base.invoicePrefix}${String(initialInvoiceCounter).padStart(4, "0")}`;
-  } else {
-    invoicePrefix = undefined;
-  }
+  // Initialize counters at 0, increment happens when PI/Invoice is generated
+  const initialPiCounter = 0;
+  const initialInvoiceCounter = 0;
   const withDates = {
     ...base,
-    piPrefix,
-    invoicePrefix,
     piCounter: initialPiCounter,
     invoiceCounter: initialInvoiceCounter,
     createdAt: now,
