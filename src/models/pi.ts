@@ -21,6 +21,7 @@ export const PISchema = z.object({
   taxPercent: z.number().min(0).optional(),
   taxAmount: z.number().min(0).optional(),
   grandTotal: z.number().min(0),
+  piSerial: z.string().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
