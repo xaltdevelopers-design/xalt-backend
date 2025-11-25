@@ -11,6 +11,7 @@ import { forgotPasswordRouter } from "./forgotPassword.ts";
 import { banksRouter } from "./banks.ts";
 import { companyRouter } from "./company.ts";
 import { piRouter } from "./pi.ts";
+import { invoiceRouter } from "./invoice.ts";
 import { rolesRouter } from "./roles.ts";
 
 export const api = new Router();
@@ -24,5 +25,6 @@ api.use(bootstrapRouter.routes(), bootstrapRouter.allowedMethods());
 api.use(forgotPasswordRouter.routes(), forgotPasswordRouter.allowedMethods());
 api.use(banksRouter.routes(), banksRouter.allowedMethods());
 api.use(piRouter.routes(), piRouter.allowedMethods());
+api.use(invoiceRouter.routes(), invoiceRouter.allowedMethods());
 api.use(rolesRouter.routes(), rolesRouter.allowedMethods());
 api.use(companyRouter.routes(), companyRouter.allowedMethods());

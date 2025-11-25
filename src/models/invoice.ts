@@ -1,0 +1,31 @@
+import { z } from "../deps.ts";
+
+export const InvoiceItemSchema = z.object({
+  id: z.number().optional(),
+  equipmentName: z.string().min(1),
+  description: z.string().optional(),
+  qty: z.number().min(0),
+  unitPrice: z.number().min(0),
+  total: z.number().min(0),
+  image: z.string().optional()
+});
+
+export const InvoiceSchema = z.object({
+  clientId: z.union([z.string(), z.number()]).optional(),
+  companyId: z.string().optional(),
+  customerId: z.string().optional(),
+  preparedBy: z.string().optional(),
+  items: z.array(InvoiceItemSchema).min(1),
+  subtotal: z.number().min(0),
+  discount: z.number().min(0).optional(),
+  totalAmount: z.number().min(0),
+  taxPercent: z.number().min(0).optional(),
+  taxAmount: z.number().min(0).optional(),
+  grandTotal: z.number().min(0),
+  invoiceSerial: z.string().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date(),
+});
+
+export type InvoiceType = z.infer<typeof InvoiceSchema>;
+export type InvoiceItemType = z.infer<typeof InvoiceItemSchema>;

@@ -1,25 +1,16 @@
 import { Collection, z } from "../deps.ts";
 import { getDb } from "../db/mongo.ts";
-import { PISchema, PIType } from "../models/pi.ts";
-import { getCompany, incrementPiCounter } from "../controllers/company.ts";
-import { createInvoice } from "../controllers/invoice.ts";
+import { InvoiceSchema, InvoiceType } from "../models/invoice.ts";
+import { getCompany } from "../controllers/company.ts";
 
-async function collection(): Promise<Collection<PIType>> {
+async function collection(): Promise<Collection<InvoiceType>> {
   const db = await getDb();
-  return db.collection<PIType>("pi");
+  return db.collection<InvoiceType>("invoice");
 }
 
-export async function createPI(data: unknown) {
+export async function createInvoice(data: unknown) {
   const now = new Date();
   const base = (typeof data === "object" && data !== null ? { ...(data as any) } : {}) as any;
-  
-  // Check if this should be an Invoice instead of PI
-  const isPI = base.pi !== false; // default to true if not specified
-  if (!isPI) {
-    // Redirect to Invoice creation
-    return await createInvoice(data);
-  }
-  
   // Ensure every item has image field
   if (Array.isArray(base.items)) {
     for (let i = 0; i < base.items.length; i++) {
@@ -28,12 +19,11 @@ export async function createPI(data: unknown) {
       }
     }
   }
-  // try to allocate a serial from company piPrefix
+  // Generate invoice serial from company invoicePrefix
   let company = null;
   const { ObjectId } = await import("../deps.ts");
   if (base.companyId) {
     const colCompany = await (await getDb()).collection("company");
-    // Convert companyId string to ObjectId for MongoDB query
     let companyFilter: any;
     try {
       companyFilter = { _id: new ObjectId(base.companyId) };
@@ -45,12 +35,8 @@ export async function createPI(data: unknown) {
     company = await getCompany();
     if (Array.isArray(company)) company = company[0];
   }
-  // Generate PI serial from piPrefix
-  const prefix = company?.piPrefix;
-  const counterField = "piCounter";
   
-  if (company && prefix) {
-    // Increment appropriate counter for this company
+  if (company && company.invoicePrefix) {
     const colCompany = await (await getDb()).collection("company");
     let filter: any;
     try {
@@ -64,24 +50,23 @@ export async function createPI(data: unknown) {
     } catch (_) {
       filter = { _id: company._id };
     }
-    await colCompany.updateOne(filter as any, { $inc: { [counterField]: 1 } });
+    await colCompany.updateOne(filter as any, { $inc: { invoiceCounter: 1 } });
     const updated = await colCompany.findOne(filter as any);
-    const next = updated?.[counterField] ?? 1;
+    const next = updated?.invoiceCounter ?? 1;
     const num = String(next).padStart(4, "0");
-    // Ensure prefix ends with "/" before adding serial number
-    const finalPrefix = prefix.endsWith("/") ? prefix : `${prefix}/`;
-    base.piSerial = `${finalPrefix}${num}`;
+    const finalPrefix = company.invoicePrefix.endsWith("/") ? company.invoicePrefix : `${company.invoicePrefix}/`;
+    base.invoiceSerial = `${finalPrefix}${num}`;
   }
   const withDates = { ...base, createdAt: now, updatedAt: now } as unknown;
-  const parsed = PISchema.parse(withDates);
+  const parsed = InvoiceSchema.parse(withDates);
   const col = await collection();
   const id = await col.insertOne(parsed as any);
   return await col.findOne({ _id: id } as any);
 }
 
-export async function listPI() {
+export async function listInvoice() {
   const col = await collection();
-  const pis = await col.find({}).sort({ createdAt: -1 }).toArray();
+  const invoices = await col.find({}).sort({ createdAt: -1 }).toArray();
   
   // Populate clientId and companyId
   const db = await getDb();
@@ -89,29 +74,29 @@ export async function listPI() {
   const userCol = db.collection("users");
   const companyCol = db.collection("company");
   
-  const populated = await Promise.all(pis.map(async (pi: any) => {
+  const populated = await Promise.all(invoices.map(async (invoice: any) => {
     let client = null;
     let company = null;
     
     // Populate clientId (user) - clientId is a string, match with user.id field
-    if (pi.clientId) {
+    if (invoice.clientId) {
       try {
-        client = await userCol.findOne({ id: String(pi.clientId) });
+        client = await userCol.findOne({ id: String(invoice.clientId) });
       } catch (e) {
         console.error("Failed to populate client:", e);
       }
     }
     
     // Populate companyId
-    if (pi.companyId) {
+    if (invoice.companyId) {
       try {
-        const companyFilter = { _id: new ObjectId(pi.companyId) };
+        const companyFilter = { _id: new ObjectId(invoice.companyId) };
         company = await companyCol.findOne(companyFilter);
       } catch {}
     }
     
     return {
-      ...pi,
+      ...invoice,
       clientDetails: client,
       companyDetails: company
     };
@@ -120,11 +105,11 @@ export async function listPI() {
   return populated;
 }
 
-export async function getPI(id: string) {
+export async function getInvoice(id: string) {
   const col = await collection();
   const { ObjectId } = await import("../deps.ts");
-  const pi = await col.findOne({ _id: new ObjectId(id) } as any);
-  if (!pi) return null;
+  const invoice = await col.findOne({ _id: new ObjectId(id) } as any);
+  if (!invoice) return null;
   
   // Populate clientId and companyId
   const db = await getDb();
@@ -135,38 +120,38 @@ export async function getPI(id: string) {
   let company = null;
   
   // Populate clientId (user) - clientId is a string, match with user.id field
-  if (pi.clientId) {
+  if (invoice.clientId) {
     try {
-      client = await userCol.findOne({ id: String(pi.clientId) });
+      client = await userCol.findOne({ id: String(invoice.clientId) });
     } catch (e) {
       console.error("Failed to populate client:", e);
     }
   }
   
   // Populate companyId
-  if (pi.companyId) {
+  if (invoice.companyId) {
     try {
-      const companyFilter = { _id: new ObjectId(pi.companyId) };
+      const companyFilter = { _id: new ObjectId(invoice.companyId) };
       company = await companyCol.findOne(companyFilter);
     } catch {}
   }
   
   return {
-    ...pi,
+    ...invoice,
     clientDetails: client,
     companyDetails: company
   };
 }
 
-export async function updatePI(id: string, data: unknown) {
+export async function updateInvoice(id: string, data: unknown) {
   const col = await collection();
-  const partial = PISchema.partial().parse(data);
+  const partial = InvoiceSchema.partial().parse(data);
   const { ObjectId } = await import("../deps.ts");
   await col.updateOne({ _id: new ObjectId(id) } as any, { $set: { ...partial, updatedAt: new Date() } });
   return await col.findOne({ _id: new ObjectId(id) } as any);
 }
 
-export async function deletePI(id: string) {
+export async function deleteInvoice(id: string) {
   const col = await collection();
   const { ObjectId } = await import("../deps.ts");
   await col.deleteOne({ _id: new ObjectId(id) } as any);

@@ -14,6 +14,13 @@ export async function createCompany(data: unknown) {
   // Initialize counters at 0, increment happens when PI/Invoice is generated
   const initialPiCounter = 0;
   const initialInvoiceCounter = 0;
+  // Ensure piPrefix and invoicePrefix end with "/"
+  if (base.piPrefix && !base.piPrefix.endsWith("/")) {
+    base.piPrefix = `${base.piPrefix}/`;
+  }
+  if (base.invoicePrefix && !base.invoicePrefix.endsWith("/")) {
+    base.invoicePrefix = `${base.invoicePrefix}/`;
+  }
   const withDates = {
     ...base,
     piCounter: initialPiCounter,
