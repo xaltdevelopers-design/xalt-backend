@@ -116,7 +116,7 @@ usersRouter.get("/:id", async (ctx: Context) => {
   requireAuth(ctx);
   const id = ctx.params.id!;
   const requesterId = ctx.state.currentUser!._id.$oid;
-  if (requesterId !== id && !ctx.state.currentUser!.roles.includes("admin")) {
+  if (requesterId !== id && !ctx.state.currentUser!.roles.includes("admin") && !ctx.state.currentUser!.roles.includes("superAdmin")) {
     ctx.response.status = 403;
     ctx.response.body = { error: "Forbidden" };
     return;
@@ -135,7 +135,7 @@ usersRouter.put("/:id", async (ctx: Context) => {
   requireAuth(ctx);
   const id = ctx.params.id!;
   const requesterId = ctx.state.currentUser!._id.$oid;
-  if (requesterId !== id && !ctx.state.currentUser!.roles.includes("admin")) {
+  if (requesterId !== id && !ctx.state.currentUser!.roles.includes("admin") && !ctx.state.currentUser!.roles.includes("superAdmin")) {
     ctx.response.status = 403;
     ctx.response.body = { error: "Forbidden" };
     return;
@@ -158,7 +158,7 @@ usersRouter.put("/:id", async (ctx: Context) => {
 
 // Delete (admin only)
 usersRouter.delete("/:id", async (ctx: Context) => {
-  requireRole("admin", ctx);
+  requireRole("superAdmin", ctx);
   const id = ctx.params.id!;
   await deleteUser(id);
   ctx.response.status = 204;
