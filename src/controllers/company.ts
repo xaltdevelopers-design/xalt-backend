@@ -25,6 +25,7 @@ export async function createCompany(data: unknown) {
     ...base,
     piCounter: initialPiCounter,
     invoiceCounter: initialInvoiceCounter,
+    isRetrieve: base.isRetrieve !== undefined ? base.isRetrieve : false, // Default to false
     createdAt: now,
     updatedAt: now
   } as any;
@@ -142,6 +143,41 @@ export async function deleteCompany(id: string) {
     deleted: result.deletedCount > 0,
     deletedCount: result.deletedCount,
   };
+}
+
+export async function getCompaniesByRetrieve(isRetrieve: boolean) {
+  const col = await collection();
+  const docs = await col.find({ isRetrieve }).sort({ createdAt: -1 }).toArray();
+  for (const c of docs) {
+    if (c && c.piPrefix) {
+      const next = (c.piCounter ?? 0) + 1;
+      const num = String(next).padStart(4, "0");
+      (c as any).nextPiSerial = `${c.piPrefix}${num}`;
+    }
+  }
+  return docs;
+}
+
+export async function toggleCompanyRetrieve(id: string) {
+  const col = await collection();
+  const { ObjectId } = await import("../deps.ts");
+  
+  // Get current company
+  const company = await col.findOne({ _id: new ObjectId(id) } as any);
+  if (!company) {
+    throw { status: 404, message: "Company not found", error: null };
+  }
+  
+  // Toggle isRetrieve value
+  const newRetrieveValue = !(company as any).isRetrieve;
+  
+  // Update company
+  await col.updateOne(
+    { _id: new ObjectId(id) } as any,
+    { $set: { isRetrieve: newRetrieveValue, updatedAt: new Date() } }
+  );
+  
+  return await col.findOne({ _id: new ObjectId(id) } as any);
 }
 
 
