@@ -15,7 +15,7 @@ export function createApp() {
     origin: "*",
     credentials: true,
     allowedHeaders: ["Authorization", "Content-Type", "Accept"],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   }));
 
   // Basic logger

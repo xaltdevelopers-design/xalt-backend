@@ -11,6 +11,7 @@ export const CompanySchema = z.object({
   CIN: z.string().optional(),
   piCounter: z.number().optional(),
   invoiceCounter: z.number().optional(),
+  isRetrieve: z.boolean().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

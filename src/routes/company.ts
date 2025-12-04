@@ -1,5 +1,5 @@
 import { Router, Context } from "../deps.ts";
-import { createCompany, getCompany, updateCompany, deleteCompany } from "../controllers/company.ts";
+import { createCompany, getCompany, updateCompany, deleteCompany, getCompaniesByRetrieve, toggleCompanyRetrieve } from "../controllers/company.ts";
 import { requireAuth, requireRole } from "../middleware/auth.ts";
 
 export const companyRouter = new Router({ prefix: "/api/company" });
@@ -59,4 +59,26 @@ companyRouter.delete("/:id", async (ctx:Context) => {
     success: result.deleted,
     deletedCount: result.deletedCount,
   };
+});
+
+// Get companies by isRetrieve flag (authenticated)
+companyRouter.get("/retrieve/:isRetrieve", async (ctx: Context) => {
+  requireAuth(ctx);
+  const isRetrieveParam = ctx.params.isRetrieve;
+  const isRetrieve = isRetrieveParam === "true";
+  const companies = await getCompaniesByRetrieve(isRetrieve);
+  ctx.response.body = { success: true, data: companies };
+});
+
+// Toggle company isRetrieve flag (superAdmin only)
+companyRouter.patch("/toggle-retrieve/:id", async (ctx: Context) => {
+  requireRole("superAdmin", ctx);
+  const id = ctx.params.id!;
+  try {
+    const updated = await toggleCompanyRetrieve(id);
+    ctx.response.body = { success: true, data: updated };
+  } catch (e: any) {
+    ctx.response.status = e?.status || 400;
+    ctx.response.body = { success: false, message: e?.message || "Bad Request", error: e?.error || null };
+  }
 });
