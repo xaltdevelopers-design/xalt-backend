@@ -11,6 +11,7 @@ export interface ProductSchema {
   productImages?: string[];
   shippingAddress?: string;
   billingAddress?: string;
+  isRetrieve?: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

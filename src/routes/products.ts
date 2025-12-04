@@ -2,7 +2,7 @@
 // deno-lint-ignore no-explicit-any
 declare const Deno: any;
 import { Router, Context } from "../deps.ts";
-import { addProduct, listProducts, getProduct, updateProduct, deleteProduct } from "../controllers/products.ts";
+import { addProduct, listProducts, getProduct, updateProduct, deleteProduct, toggleProductRetrieve, getProductsByRetrieve } from "../controllers/products.ts";
 import { authMiddleware, requireAuth } from "../middleware/auth.ts";
 // @ts-ignore: Deno is available in runtime
 declare const Deno: any;
@@ -11,6 +11,70 @@ export const productsRouter = new Router({ prefix: "/api/products" });
 
 // Attach auth middleware for all product routes
 productsRouter.use(authMiddleware);
+
+// Get products by retrieve status - Must come before /:id route
+productsRouter.get("/retrieve/:isRetrieve", async (ctx: Context) => {
+  requireAuth(ctx);
+  const isRetrieve = ctx.params.isRetrieve === "true";
+  try {
+    const products = await getProductsByRetrieve(isRetrieve);
+    const baseUrl = Deno.env.get("BASE_URL") || `${ctx.request.url.protocol}//${ctx.request.url.host}`;
+    const productsWithId = products.map((p: any) => {
+      if (!p || typeof p !== "object") return null;
+      let productImage = null;
+      if (Array.isArray(p.productImages) && p.productImages.length > 0) {
+        productImage = baseUrl + p.productImages[0];
+      } else if (typeof p.productImages === "string") {
+        productImage = baseUrl + p.productImages;
+      }
+      const { productImages = undefined, ...rest } = p || {};
+      return {
+        ...rest,
+        productImage,
+        id: p?._id?.$oid || p?._id || null
+      };
+    }).filter(Boolean);
+    ctx.response.body = {
+      success: true,
+      message: "Products fetched successfully",
+      error: null,
+      data: productsWithId
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg,
+      data: null
+    };
+  }
+});
+
+// Toggle product retrieve status - Must come before /:id route
+productsRouter.patch("/toggle-retrieve/:id", async (ctx: Context) => {
+  requireAuth(ctx);
+  const id = ctx.params.id!;
+  try {
+    const updated = await toggleProductRetrieve(id);
+    ctx.response.body = {
+      success: true,
+      message: "Product retrieve status toggled successfully",
+      error: null,
+      data: updated
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg,
+      data: null
+    };
+  }
+});
 
 // List all products
 productsRouter.get("/", async (ctx: Context) => {

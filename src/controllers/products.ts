@@ -29,6 +29,7 @@ export async function addProduct(data: unknown) {
   const now = new Date();
   const doc: ProductSchema = {
     ...parsed,
+    isRetrieve: false, // Default to false for new products
     createdAt: now,
     updatedAt: now,
   };
@@ -75,4 +76,37 @@ export async function deleteProduct(id: string) {
   const { ObjectId } = await import("../deps.ts");
   await col.deleteOne({ _id: new ObjectId(id) } as any);
   return { deleted: true };
+}
+
+export async function toggleProductRetrieve(id: string) {
+  const col = await collection();
+  const { ObjectId } = await import("../deps.ts");
+  
+  // Get current product
+  const product = await col.findOne({ _id: new ObjectId(id) } as any);
+  if (!product) {
+    throw new Error("Product not found");
+  }
+  
+  // Toggle isRetrieve
+  const newIsRetrieve = !product.isRetrieve;
+  await col.updateOne(
+    { _id: new ObjectId(id) } as any,
+    { $set: { isRetrieve: newIsRetrieve, updatedAt: new Date() } }
+  );
+  
+  return await getProduct(id);
+}
+
+export async function getProductsByRetrieve(isRetrieve: boolean) {
+  const col = await collection();
+  const products = await col.find({ isRetrieve }).sort({ createdAt: -1 }).toArray();
+  
+  return products.map((product: any) => {
+    const { _id, ...rest } = product;
+    return {
+      _id: { $oid: _id.toString() },
+      ...rest
+    };
+  });
 }

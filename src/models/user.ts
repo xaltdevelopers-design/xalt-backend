@@ -13,6 +13,7 @@ export interface UserSchema {
   city?: string;
   shippingAddress?: string;
   billingAddress?: string;
+  isRetrieve?: boolean; // For client retrieve/archive functionality
   createdAt: Date;
   updatedAt: Date;
 }

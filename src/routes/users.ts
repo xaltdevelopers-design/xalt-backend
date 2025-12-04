@@ -1,6 +1,6 @@
 import { Router, Context } from "../deps.ts";
 import { authMiddleware, requireAuth, requireRole } from "../middleware/auth.ts";
-import { createUser, listUsers, getUser, updateUser, deleteUser, listClients } from "../controllers/users.ts";
+import { createUser, listUsers, getUser, updateUser, deleteUser, listClients, toggleUserRetrieve, getUsersByRetrieve } from "../controllers/users.ts";
 
 export const usersRouter = new Router({ prefix: "/api/users" });
 
@@ -25,6 +25,50 @@ usersRouter.get("/clients", async (ctx: Context) => {
   requireAuth(ctx);
   const clients = await listClients();
   ctx.response.body = { success: true, message: "Clients fetched successfully", data: clients };
+});
+
+// Get users by retrieve status (admin only) - Must come before /:id route
+usersRouter.get("/retrieve/:isRetrieve", async (ctx: Context) => {
+  requireRole("superAdmin", ctx);
+  const isRetrieve = ctx.params.isRetrieve === "true";
+  try {
+    const users = await getUsersByRetrieve(isRetrieve);
+    ctx.response.body = {
+      success: true,
+      message: "Users fetched successfully",
+      data: users
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg
+    };
+  }
+});
+
+// Toggle user retrieve status (admin only) - Must come before /:id route
+usersRouter.patch("/toggle-retrieve/:id", async (ctx: Context) => {
+  requireRole("superAdmin", ctx);
+  const id = ctx.params.id!;
+  try {
+    const updated = await toggleUserRetrieve(id);
+    ctx.response.body = {
+      success: true,
+      message: "User retrieve status toggled successfully",
+      data: updated
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg
+    };
+  }
 });
 
 // Create user (admin only)

@@ -66,6 +66,7 @@ export async function createUser(data: unknown) {
     passwordHash,
     roles,
     userType: userType,
+    isRetrieve: false, // Default to false for new users
     createdAt: now,
     updatedAt: now,
   };
@@ -199,4 +200,37 @@ export async function authenticate(email: string, password: string) {
     _id: { $oid: _id.toString() },
     ...rest
   } as Omit<UserSchema, "passwordHash"> & { _id: { $oid: string } };
+}
+
+export async function toggleUserRetrieve(id: string) {
+  const col = await collection();
+  const { ObjectId } = await import("../deps.ts");
+  
+  // Get current user
+  const user = await col.findOne({ _id: new ObjectId(id) } as any);
+  if (!user) {
+    throw new Error("User not found");
+  }
+  
+  // Toggle isRetrieve
+  const newIsRetrieve = !user.isRetrieve;
+  await col.updateOne(
+    { _id: new ObjectId(id) } as any,
+    { $set: { isRetrieve: newIsRetrieve, updatedAt: new Date() } }
+  );
+  
+  return await getUser(id);
+}
+
+export async function getUsersByRetrieve(isRetrieve: boolean) {
+  const col = await collection();
+  const users = await col.find({ isRetrieve }, { projection: { passwordHash: 0 } }).toArray();
+  
+  return users.map((user: any) => {
+    const { _id, ...rest } = user;
+    return {
+      _id: { $oid: _id.toString() },
+      ...rest
+    };
+  });
 }
