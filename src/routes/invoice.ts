@@ -1,5 +1,5 @@
 import { Router, Context } from "../deps.ts";
-import { listInvoice, getInvoice, updateInvoice, deleteInvoice } from "../controllers/invoice.ts";
+import { listInvoice, getInvoice, updateInvoice, deleteInvoice, toggleInvoiceRetrieve, getInvoicesByRetrieve } from "../controllers/invoice.ts";
 import { requireAuth } from "../middleware/auth.ts";
 // @ts-ignore: Deno namespace is available in Deno runtime
 // deno-lint-ignore no-explicit-any
@@ -15,6 +15,60 @@ function getBaseUrl(ctx: Context) {
   } catch {}
   return `${ctx.request.url.protocol}//${ctx.request.url.host}`;
 }
+
+// Get invoices by retrieve status - Must come before /:id route
+invoiceRouter.get("/retrieve/:isRetrieve", async (ctx: Context) => {
+  requireAuth(ctx);
+  const isRetrieve = ctx.params.isRetrieve === "true";
+  try {
+    const items = await getInvoicesByRetrieve(isRetrieve);
+    const baseUrl = getBaseUrl(ctx);
+    const mapped = items.map((invoice: any) => {
+      if (Array.isArray(invoice.items)) {
+        invoice.items = invoice.items.map((it: any) => ({
+          ...it,
+          image: it.image && it.image.startsWith("/uploads/") ? baseUrl + it.image : it.image
+        }));
+      }
+      return invoice;
+    });
+    ctx.response.body = {
+      success: true,
+      message: "Invoices fetched successfully",
+      data: mapped
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg
+    };
+  }
+});
+
+// Toggle invoice retrieve status - Must come before /:id route
+invoiceRouter.patch("/toggle-retrieve/:id", async (ctx: Context) => {
+  requireAuth(ctx);
+  const id = ctx.params.id!;
+  try {
+    const updated = await toggleInvoiceRetrieve(id);
+    ctx.response.body = {
+      success: true,
+      message: "Invoice retrieve status toggled successfully",
+      data: updated
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg
+    };
+  }
+});
 
 // List all invoices
 invoiceRouter.get("/", async (ctx: Context) => {

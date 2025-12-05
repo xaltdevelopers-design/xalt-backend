@@ -23,6 +23,7 @@ export const InvoiceSchema = z.object({
   taxAmount: z.number().min(0).optional(),
   grandTotal: z.number().min(0),
   invoiceSerial: z.string().optional(),
+  isRetrieve: z.boolean().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });
