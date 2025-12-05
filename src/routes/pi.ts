@@ -1,6 +1,6 @@
 
 import { Router, Context } from "../deps.ts";
-import { createPI, listPI, getPI, updatePI, deletePI } from "../controllers/pi.ts";
+import { createPI, listPI, getPI, updatePI, deletePI, togglePIRetrieve, getPIsByRetrieve } from "../controllers/pi.ts";
 import { requireAuth } from "../middleware/auth.ts";
 // @ts-ignore: Deno namespace is available in Deno runtime
 // deno-lint-ignore no-explicit-any
@@ -16,6 +16,60 @@ function getBaseUrl(ctx: Context) {
   } catch {}
   return `${ctx.request.url.protocol}//${ctx.request.url.host}`;
 }
+
+// Get PIs by retrieve status - Must come before /:id route
+piRouter.get("/retrieve/:isRetrieve", async (ctx: Context) => {
+  requireAuth(ctx);
+  const isRetrieve = ctx.params.isRetrieve === "true";
+  try {
+    const items = await getPIsByRetrieve(isRetrieve);
+    const baseUrl = getBaseUrl(ctx);
+    const mapped = items.map((pi: any) => {
+      if (Array.isArray(pi.items)) {
+        pi.items = pi.items.map((it: any) => ({
+          ...it,
+          image: it.image && it.image.startsWith("/uploads/") ? baseUrl + it.image : it.image
+        }));
+      }
+      return pi;
+    });
+    ctx.response.body = {
+      success: true,
+      message: "PIs fetched successfully",
+      data: mapped
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg
+    };
+  }
+});
+
+// Toggle PI retrieve status - Must come before /:id route
+piRouter.patch("/toggle-retrieve/:id", async (ctx: Context) => {
+  requireAuth(ctx);
+  const id = ctx.params.id!;
+  try {
+    const updated = await togglePIRetrieve(id);
+    ctx.response.body = {
+      success: true,
+      message: "PI retrieve status toggled successfully",
+      data: updated
+    };
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Bad Request";
+    ctx.response.status = 400;
+    ctx.response.body = {
+      success: false,
+      message: msg,
+      error: msg
+    };
+  }
+});
 
 // List
 piRouter.get("/", async (ctx: Context) => {

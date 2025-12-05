@@ -23,6 +23,7 @@ export const PISchema = z.object({
   taxAmount: z.number().min(0).optional(),
   grandTotal: z.number().min(0),
   piSerial: z.string().optional(),
+  isRetrieve: z.boolean().optional(),
   createdAt: z.date(),
   updatedAt: z.date(),
 });

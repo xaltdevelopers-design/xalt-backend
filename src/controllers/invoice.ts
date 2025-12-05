@@ -57,7 +57,7 @@ export async function createInvoice(data: unknown) {
     const finalPrefix = company.invoicePrefix.endsWith("/") ? company.invoicePrefix : `${company.invoicePrefix}/`;
     base.invoiceSerial = `${finalPrefix}${num}`;
   }
-  const withDates = { ...base, createdAt: now, updatedAt: now } as unknown;
+  const withDates = { ...base, isRetrieve: false, createdAt: now, updatedAt: now } as unknown;
   const parsed = InvoiceSchema.parse(withDates);
   const col = await collection();
   const id = await col.insertOne(parsed as any);
@@ -156,4 +156,65 @@ export async function deleteInvoice(id: string) {
   const { ObjectId } = await import("../deps.ts");
   await col.deleteOne({ _id: new ObjectId(id) } as any);
   return { deleted: true };
+}
+
+export async function toggleInvoiceRetrieve(id: string) {
+  const col = await collection();
+  const { ObjectId } = await import("../deps.ts");
+  
+  // Get current Invoice
+  const invoice = await col.findOne({ _id: new ObjectId(id) } as any);
+  if (!invoice) {
+    throw new Error("Invoice not found");
+  }
+  
+  // Toggle isRetrieve
+  const newIsRetrieve = !invoice.isRetrieve;
+  await col.updateOne(
+    { _id: new ObjectId(id) } as any,
+    { $set: { isRetrieve: newIsRetrieve, updatedAt: new Date() } }
+  );
+  
+  return await col.findOne({ _id: new ObjectId(id) } as any);
+}
+
+export async function getInvoicesByRetrieve(isRetrieve: boolean) {
+  const col = await collection();
+  const invoices = await col.find({ isRetrieve }).sort({ createdAt: -1 }).toArray();
+  
+  // Populate clientId and companyId
+  const db = await getDb();
+  const { ObjectId } = await import("../deps.ts");
+  const userCol = db.collection("users");
+  const companyCol = db.collection("company");
+  
+  const populated = await Promise.all(invoices.map(async (invoice: any) => {
+    let client = null;
+    let company = null;
+    
+    // Populate clientId (user)
+    if (invoice.clientId) {
+      try {
+        client = await userCol.findOne({ id: String(invoice.clientId) });
+      } catch (e) {
+        console.error("Failed to populate client:", e);
+      }
+    }
+    
+    // Populate companyId
+    if (invoice.companyId) {
+      try {
+        const companyFilter = { _id: new ObjectId(invoice.companyId) };
+        company = await companyCol.findOne(companyFilter);
+      } catch {}
+    }
+    
+    return {
+      ...invoice,
+      clientDetails: client,
+      companyDetails: company
+    };
+  }));
+  
+  return populated;
 }
