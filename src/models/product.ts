@@ -5,8 +5,9 @@ export interface ProductSchema {
   description?: string;
   price: number;
   inStockQty: number;
-  discountType?: "percent" | "absolute";
-  discountValue?: number;
+  currency?: string;
+  // discountType?: "percent" | "absolute";
+  // discountValue?: number;
   hsnSacCode?: string;
   productImages?: string[];
   shippingAddress?: string;
