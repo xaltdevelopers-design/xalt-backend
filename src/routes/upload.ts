@@ -1,4 +1,5 @@
 import { Router, Context } from "../deps.ts";
+import { compressImage } from "../utils/imageCompressor.ts";
 // @ts-ignore: Deno namespace is available in Deno runtime
 // deno-lint-ignore no-explicit-any
 declare const Deno: any;
@@ -35,7 +36,11 @@ uploadRouter.post("/image", async (ctx: Context) => {
       const ext = value.filename?.split(".").pop() || "jpg";
       const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
       const filePath = `uploads/${fileName}`;
-      await Deno.writeFile(filePath, value.content);
+      
+      // Compress image to under 1 MB
+      const compressedContent = await compressImage(value.content, value.filename || "image.jpg");
+      
+      await Deno.writeFile(filePath, compressedContent);
       fileUrl = `/uploads/${fileName}`;
       break;
     }

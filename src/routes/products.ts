@@ -4,6 +4,7 @@ declare const Deno: any;
 import { Router, Context } from "../deps.ts";
 import { addProduct, listProducts, getProduct, updateProduct, deleteProduct, toggleProductRetrieve, getProductsByRetrieve } from "../controllers/products.ts";
 import { authMiddleware, requireAuth } from "../middleware/auth.ts";
+import { compressImage } from "../utils/imageCompressor.ts";
 // @ts-ignore: Deno is available in runtime
 declare const Deno: any;
 
@@ -150,7 +151,11 @@ productsRouter.post("/", async (ctx: Context) => {
             const ext = file.originalName?.split(".").pop() || "jpg";
             const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
             const filePath = `uploads/${fileName}`;
-            await Deno.writeFile(filePath, content);
+            
+            // Compress image to under 1 MB
+            const compressedContent = await compressImage(content, file.originalName || "image.jpg");
+            
+            await Deno.writeFile(filePath, compressedContent);
             productImages.push(`/uploads/${fileName}`);
           }
         }
@@ -299,7 +304,11 @@ productsRouter.put("/:id", async (ctx: Context) => {
             const ext = file.originalName?.split(".").pop() || "jpg";
             const fileName = `${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
             const filePath = `uploads/${fileName}`;
-            await Deno.writeFile(filePath, content);
+            
+            // Compress image to under 1 MB
+            const compressedContent = await compressImage(content, file.originalName || "image.jpg");
+            
+            await Deno.writeFile(filePath, compressedContent);
             productImages.push(`/uploads/${fileName}`);
           }
         }
