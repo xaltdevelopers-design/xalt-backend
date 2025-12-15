@@ -162,7 +162,8 @@ productsRouter.post("/", async (ctx: Context) => {
     // Convert numeric fields
     if (body.price) body.price = Number(body.price);
     if (body.inStockQty) body.inStockQty = Number(body.inStockQty);
-    if (body.discountValue) body.discountValue = Number(body.discountValue);
+    // if (body.discountValue) body.discountValue = Number(body.discountValue);
+
   } else {
     body = ctx.request.hasBody ? await ctx.request.body({ type: "json" }).value : {};
   }
@@ -310,7 +311,7 @@ productsRouter.put("/:id", async (ctx: Context) => {
     // Convert numeric fields
     if (body.price) body.price = Number(body.price);
     if (body.inStockQty) body.inStockQty = Number(body.inStockQty);
-    if (body.discountValue) body.discountValue = Number(body.discountValue);
+    // if (body.discountValue) body.discountValue = Number(body.discountValue);
   } else {
     body = ctx.request.hasBody ? await ctx.request.body({ type: "json" }).value : {};
   }

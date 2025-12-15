@@ -10,12 +10,13 @@ const productInput = z.object({
   description: z.string().optional(),
   price: z.number().min(0),
   inStockQty: z.number().int().min(0),
-  discountType: z.enum(["percent", "absolute"]).optional(),
-  discountValue: z.number().min(0).optional(),
+  // discountType: z.enum(["percent", "absolute"]).optional(),
+  // discountValue: z.number().min(0).optional(),
   hsnSacCode: z.string().optional(),
   productImages: z.array(z.string()).optional(),
   shippingAddress: z.string().optional(),
   billingAddress: z.string().optional(),
+  currency: z.string().optional(),
 });
 
 async function collection(): Promise<Collection<ProductSchema>> {
